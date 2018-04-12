@@ -25,17 +25,15 @@ fprintf('Sample size: %d\n', number_of_train)
 
 SVMModel = fitcsvm(train,train_truth);
 
-saveCompactModel(SVMModel,'SVMIonosphere'); % Make model persistent
-
 fprintf('Training ended at time %s\n', datestr(now,'HH:MM:SS.FFF'))
 
-[predicted_label,score] = predict(SVMModel,varify_dimention);
+[label,score] = predict(SVMModel,varify_dimention);
 
-% CVSVMModel = crossval(SVMModel);
+CVSVMModel = crossval(SVMModel);
 
-% classLoss = kfoldLoss(CVSVMModel);
+classLoss = kfoldLoss(CVSVMModel);
 
-correct_rate = 1 - length(find(varify_truth~=predicted_label))/length(predicted_label);
+correct_rate = 1 - length(find(varify_truth~=label))/length(label);
 
 ds_TEST = datastore('test.csv');
 
@@ -52,11 +50,8 @@ while hasdata(ds_TEST)
     ct = table2array(test_inp(:,{'click_time'}));
     test = [test convertTimeToNum2(ct)];
     ids = table2array(test_inp(:,{'click_id'}));
-    ids = int64(ids)
-    [predicted_label,scr] = predict(SVMModel,test);
-    % predicted_label = string(predicted_label);
-    N = [ids predicted_label];
-    dlmwrite('prediction.csv',N,'delimiter',',','-append');
+    [label,score] = predict(SVMModel,varify_dimention);
+    
 end
 
 fprintf('All Done %s\n', datestr(now,time_format))
