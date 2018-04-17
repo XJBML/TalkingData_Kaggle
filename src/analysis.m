@@ -19,15 +19,20 @@ train = train(1:number_of_train,:);
 
 train_truth = train_truth(1:number_of_train);
 
-fprintf('Started training at time %s\n', datestr(now,'HH:MM:SS.FFF'))
 
-fprintf('Sample size: %d\n', number_of_train)
 
-SVMModel = fitcsvm(train,train_truth);
+if exist('SVMIonosphere.mat', 'file') == 2 
+    disp('Model exists, load from local.')
+    SVMModel = loadCompactModel('SVMIonosphere.mat')
+else
+    disp('Training new model.')
+    fprintf('Started training at time %s\n', datestr(now,'HH:MM:SS.FFF'))
+    fprintf('Sample size: %d\n', number_of_train)
+    SVMModel = fitcsvm(train,train_truth);
+    saveCompactModel(SVMModel,'SVMIonosphere'); % Make model persistent
+    fprintf('Training ended at time %s\n', datestr(now,'HH:MM:SS.FFF'))
+end
 
-saveCompactModel(SVMModel,'SVMIonosphere'); % Make model persistent
-
-fprintf('Training ended at time %s\n', datestr(now,'HH:MM:SS.FFF'))
 
 [predicted_label,score] = predict(SVMModel,varify_dimention);
 
@@ -45,6 +50,15 @@ fprintf('Started producing prediction at time %s\n', datestr(now,time_format))
 
 % ds.TextscanFormats = {'%f','%f','%f','%f','%f','%f','%q'};
 
+cHeader = {'click_id' 'is_attributed'}; %dummy header
+commaHeader = [cHeader;repmat({','},1,numel(cHeader))]; %insert commaas
+commaHeader = commaHeader(:)';
+textHeader = cell2mat(commaHeader); %cHeader in text with commas
+%write header to file
+fid = fopen('prediction.csv','w'); 
+fprintf(fid,'%s\n',textHeader)
+fclose(fid)
+
 while hasdata(ds_TEST)
     fprintf('%s\n', datestr(now,'HH:MM:SS.FFF'))
     test_inp = ds_TEST.read;
@@ -52,11 +66,11 @@ while hasdata(ds_TEST)
     ct = table2array(test_inp(:,{'click_time'}));
     test = [test convertTimeToNum2(ct)];
     ids = table2array(test_inp(:,{'click_id'}));
-    ids = int64(ids)
+    ids = int64(ids);
     [predicted_label,scr] = predict(SVMModel,test);
     % predicted_label = string(predicted_label);
-    N = [ids predicted_label];
-    dlmwrite('prediction.csv',N,'delimiter',',','-append');
+    N = int64([ids predicted_label]);
+    dlmwrite('prediction.csv',N,'delimiter',',', 'precision', 20,'-append');
 end
 
 fprintf('All Done %s\n', datestr(now,time_format))
