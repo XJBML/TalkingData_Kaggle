@@ -1,0 +1,1 @@
+#!/bin/sh ( shuf -n 200000 train.csv ) >output.csv
